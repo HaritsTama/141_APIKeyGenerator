@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API KEY GENERATOR v2.0</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>[[ API KEY GEN ]]</h1>
+    <div class="version">VERSION 2.0 - SYSTEM READY</div>
+    
+    <div class="divider"></div>
+    
+    <div class="prompt">DAFTAR USER & GENERATE API KEY</div>
+    
+    <div class="form-group">
+      <label>NAMA DEPAN:</label>
+      <input type="text" id="firstName" placeholder="Masukkan nama depan...">
+    </div>
+    
+    <div class="form-group">
+      <label>NAMA BELAKANG:</label>
+      <input type="text" id="lastName" placeholder="Masukkan nama belakang...">
+    </div>
+    
+    <div class="form-group">
+      <label>EMAIL:</label>
+      <input type="email" id="email" placeholder="Masukkan email...">
+    </div>
+    
+    <button id="generateBtn">[ GENERATE & SAVE ]</button>
+    
+    <div class="textarea-wrapper">
+      <textarea id="apiKey" readonly placeholder=">>> AWAITING COMMAND..."></textarea>
+    </div>
+    
+    <button class="copy-btn" id="copyBtn">[ COPY TO CLIPBOARD ]</button>
+    
+    <div id="errorMsg" class="error"></div>
+    <div id="successMsg" class="success"></div>
+    
+    <div class="divider"></div>
+    
+    <div style="margin-top: 20px;">
+      <a href="/admin/login" class="link">[ ADMIN LOGIN ]</a>
+    </div>
+  </div>
+
+  <footer>&copy; 2025 NAYOTAMA SYSTEMS <span class="blink">_</span></footer>
+
+  <script>
+    const apiKeyArea = document.getElementById('apiKey');
+    const generateBtn = document.getElementById('generateBtn');
+    const copyBtn = document.getElementById('copyBtn');
+    const errorMsg = document.getElementById('errorMsg');
+    const successMsg = document.getElementById('successMsg');
+    
+    const firstName = document.getElementById('firstName');
+    const lastName = document.getElementById('lastName');
+    const email = document.getElementById('email');
+
+    generateBtn.addEventListener('click', async () => {
+      try {
+        copyBtn.textContent = '[ COPY TO CLIPBOARD ]';
+        copyBtn.disabled = false;
+
+        generateBtn.disabled = true;
+        generateBtn.textContent = '[ PROCESSING... ]';
+        errorMsg.textContent = '';
+        successMsg.textContent = '';
+        apiKeyArea.value = '>>> GENERATING KEY...';
+
+        const response = await fetch('/create', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            firstName: firstName.value.trim(),
+            lastName: lastName.value.trim(),
+            email: email.value.trim()
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          apiKeyArea.value = data.apiKey;
+          successMsg.textContent = '✓ USER & API KEY BERHASIL DIBUAT!';
+          errorMsg.textContent = '';
+          
+          // Clear form
+          firstName.value = '';
+          lastName.value = '';
+          email.value = '';
+        } else {
+          apiKeyArea.value = '';
+          errorMsg.textContent = '!!! ERROR: ' + (data.message || 'GENERATION FAILED');
+          successMsg.textContent = '';
+        }
+      } catch (error) {
+        apiKeyArea.value = '';
+        errorMsg.textContent = '!!! SYSTEM ERROR: ' + error.message;
+        successMsg.textContent = '';
+      } finally {
+        generateBtn.disabled = false;
+        generateBtn.textContent = '[ GENERATE & SAVE ]';
+      }
+    });
+
+    copyBtn.addEventListener('click', () => {
+      if (apiKeyArea.value.trim() === "" || apiKeyArea.value.includes('AWAITING') || apiKeyArea.value.includes('GENERATING')) {
+        errorMsg.textContent = '!!! NO KEY TO COPY';
+        setTimeout(() => errorMsg.textContent = '', 2000);
+        return;
+      }
+      
+      navigator.clipboard.writeText(apiKeyArea.value);
+      
+      copyBtn.textContent = "[✓ COPIED!]";
+      setTimeout(() => copyBtn.textContent = '[ COPY TO CLIPBOARD ]', 2000);
+    });
+
+    apiKeyArea.addEventListener('input', function() {
+      this.style.boxShadow = '0 0 20px #0f0, inset 0 0 20px rgba(0, 255, 0, 0.2)';
+      setTimeout(() => {
+        this.style.boxShadow = '0 0 10px #0f0, inset 0 0 10px rgba(0, 255, 0, 0.1)';
+      }, 100);
+    });
+  </script>
+</body>
+</html>
