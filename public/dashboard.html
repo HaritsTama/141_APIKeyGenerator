@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="container dashboard-container">
+    <div class="dashboard-header">
+      <div>
+        <h1>[[ ADMIN DASHBOARD ]]</h1>
+        <div class="version">DAFTAR USER & API KEY</div>
+      </div>
+      <button class="logout-btn" id="logoutBtn">[ LOGOUT ]</button>
+    </div>
+    
+    <div class="divider"></div>
+    
+    <div class="table-wrapper">
+      <table id="dataTable">
+        <thead>
+          <tr>
+            <th>ID USER</th>
+            <th>NAMA DEPAN</th>
+            <th>NAMA BELAKANG</th>
+            <th>EMAIL</th>
+            <th>API KEY</th>
+            <th>STATUS KEY</th>
+            <th>ACTION</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <tr>
+            <td colspan="7" style="text-align: center;">>>> LOADING DATA...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    
+    <div id="errorMsg" class="error"></div>
+    <div id="successMsg" class="success"></div>
+  </div>
+
+  <footer>&copy; 2025 NAYOTAMA SYSTEMS <span class="blink">_</span></footer>
+
+  <script>
+    const tableBody = document.getElementById('tableBody');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const errorMsg = document.getElementById('errorMsg');
+    const successMsg = document.getElementById('successMsg');
+
+    // Load data
+    async function loadData() {
+      try {
+        const response = await fetch('/admin/users-apikeys');
+        const data = await response.json();
+
+        if (data.success) {
+          renderTable(data.data);
+          errorMsg.textContent = '';
+        } else {
+          throw new Error(data.message || 'Failed to load data');
+        }
+      } catch (error) {
+        console.error('Error loading data:', error);
+        errorMsg.textContent = '!!! ERROR LOADING DATA: ' + error.message;
+        
+        // Jika unauthorized, redirect ke login
+        if (error.message.includes('Unauthorized')) {
+          setTimeout(() => {
+            window.location.href = '/admin/login';
+          }, 2000);
+        }
+      }
+    }
+
+    // Render table
+    function renderTable(data) {
+      if (data.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center;">>>> TIDAK ADA DATA</td></tr>';
+        return;
+      }
+
+      tableBody.innerHTML = data.map(row => {
+        let statusClass = 'status-active';
+        let statusText = 'AKTIF';
+        
+        if (row.status === 'Inactive' || row.out_of_date) {
+          statusClass = 'status-inactive';
+          statusText = 'OFF';
+        } else if (row.status === 'Never Used') {
+          statusClass = 'status-never';
+          statusText = 'BELUM DIGUNAKAN';
+        }
+
+        return `
+          <tr>
+            <td>${row.user_id}</td>
+            <td>${row.first_name}</td>
+            <td>${row.last_name}</td>
+            <td>${row.email}</td>
+            <td style="font-size: 14px; word-break: break-all;">${row.api_key || 'N/A'}</td>
+            <td class="${statusClass}">${statusText}</td>
+            <td>
+              <button class="delete-btn" onclick="deleteApiKey(${row.api_key_id})">[ DELETE ]</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Delete API Key
+    async function deleteApiKey(id) {
+      if (!confirm('Yakin ingin menghapus API Key ini?\nUser terkait juga akan dihapus!')) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`/admin/apikeys/${id}`, {
+          method: 'DELETE'
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          successMsg.textContent = '✓ ' + data.message;
+          errorMsg.textContent = '';
+          
+          // Reload data
+          setTimeout(() => {
+            loadData();
+            successMsg.textContent = '';
+          }, 1500);
+        } else {
+          throw new Error(data.message || 'Delete failed');
+        }
+      } catch (error) {
+        console.error('Error deleting:', error);
+        errorMsg.textContent = '!!! ERROR: ' + error.message;
+      }
+    }
+
+    // Logout
+    logoutBtn.addEventListener('click', async () => {
+      try {
+        const response = await fetch('/admin/logout', {
+          method: 'POST'
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          window.location.href = data.redirectTo;
+        }
+      } catch (error) {
+        console.error('Error logging out:', error);
+        errorMsg.textContent = '!!! ERROR LOGOUT: ' + error.message;
+      }
+    });
+
+    // Load data on page load
+    loadData();
+
+    // Auto refresh every 30 seconds
+    setInterval(loadData, 30000);
+
+    // Make deleteApiKey available globally
+    window.deleteApiKey = deleteApiKey;
+  </script>
+</body>
+</html>
