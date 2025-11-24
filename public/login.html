@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Login</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>[[ ADMIN LOGIN ]]</h1>
+    <div class="version">MASUK KE DASHBOARD</div>
+    
+    <div class="divider"></div>
+    
+    <div class="form-group">
+      <label>EMAIL:</label>
+      <input type="email" id="email" placeholder="Masukkan email...">
+    </div>
+    
+    <div class="form-group">
+      <label>PASSWORD:</label>
+      <input type="password" id="password" placeholder="Masukkan password...">
+    </div>
+    
+    <button id="loginBtn">[ LOGIN ]</button>
+    
+    <div id="errorMsg" class="error"></div>
+    <div id="successMsg" class="success"></div>
+    
+    <div class="divider"></div>
+    
+    <div style="margin-top: 20px;">
+      <a href="/admin/register" class="link">[ BELUM PUNYA AKUN? REGISTER DI SINI ]</a>
+    </div>
+  </div>
+
+  <footer>&copy; 2025 NAYOTAMA SYSTEMS <span class="blink">_</span></footer>
+
+  <script>
+    const loginBtn = document.getElementById('loginBtn');
+    const errorMsg = document.getElementById('errorMsg');
+    const successMsg = document.getElementById('successMsg');
+    const email = document.getElementById('email');
+    const password = document.getElementById('password');
+
+    loginBtn.addEventListener('click', async () => {
+      try {
+        loginBtn.disabled = true;
+        loginBtn.textContent = '[ PROCESSING... ]';
+        errorMsg.textContent = '';
+        successMsg.textContent = '';
+
+        const response = await fetch('/admin/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            email: email.value.trim(),
+            password: password.value
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          successMsg.textContent = '✓ ' + data.message;
+          errorMsg.textContent = '';
+          
+          // Redirect ke dashboard
+          setTimeout(() => {
+            window.location.href = data.redirectTo;
+          }, 1000);
+        } else {
+          errorMsg.textContent = '!!! ERROR: ' + (data.message || 'LOGIN FAILED');
+          successMsg.textContent = '';
+        }
+      } catch (error) {
+        errorMsg.textContent = '!!! SYSTEM ERROR: ' + error.message;
+        successMsg.textContent = '';
+      } finally {
+        loginBtn.disabled = false;
+        loginBtn.textContent = '[ LOGIN ]';
+      }
+    });
+
+    // Enter key submit
+    password.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        loginBtn.click();
+      }
+    });
+  </script>
+</body>
+</html>
